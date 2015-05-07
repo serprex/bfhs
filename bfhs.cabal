@@ -1,0 +1,12 @@
+name: bfhs
+author: serprex
+category: Compilers/Interpreters
+version: 0
+build-type: Simple
+license: MIT
+description: Brainfuck interpreter
+cabal-version: >= 1.2
+executable bfhs
+  build-depends: base
+  ghc-options: -fno-warn-tabs
+  main-is: bf.hs
