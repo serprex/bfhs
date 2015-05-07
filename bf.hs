@@ -1,7 +1,6 @@
+{-# OPTIONS -fexcess-precision -funbox-strict-fields -O2#-}
 import System.Environment
-import System.IO
 import Control.Monad
-import Data.Char
 
 data Brain = Brain {
     ptail :: String,
@@ -12,20 +11,11 @@ data Brain = Brain {
     out :: String
 }
 
-incrchr = (chr . incr255 . ord)
-    where
-        incr255 255 = 0
-        incr255 x = (x+1)
-
-decrchr = (chr . decr255 . ord)
-    where
-        decr255 0 = 255
-        decr255 x = (x-1)
-
-bfinput :: Brain -> IO Brain
-bfinput brain = do
-    c <- getChar
-    return brain{ptail=tail (ptail brain),mem=c}
+incrchr, decrchr :: Char -> Char
+incrchr '\xff' = '\0'
+incrchr x = succ x
+decrchr '\0' = '\xff'
+decrchr x = pred x
 
 bfcore :: Brain -> (Brain, Bool)
 bfcore brain@(Brain [] _ _ _ _ out) = (brain, True)
@@ -36,11 +26,11 @@ bfcore brain@(Brain (op:ptail) mem memleft memright pst out) =
         '+' -> bfcore nextBrain{mem=incrchr mem}
         '-' -> bfcore nextBrain{mem=decrchr mem}
         '.' -> bfcore nextBrain{out=mem:out}
-        ',' -> (brain, False)
-        '[' -> bfcore (if (ord mem) == 0 then
+        ',' -> (nextBrain, False)
+        '[' -> bfcore (if mem == '\0' then
             nextBrain{ptail=matchParen 1 ptail}
             else nextBrain{pst=ptail:pst})
-        ']' -> bfcore (if (ord mem) == 0 then
+        ']' -> bfcore (if mem == '\0' then
             nextBrain{pst=tail pst}
             else nextBrain{ptail=head pst})
     where
@@ -51,14 +41,18 @@ bfcore brain@(Brain (op:ptail) mem memleft memright pst out) =
         matchParen x (']':ptail) = matchParen (x-1) ptail
         matchParen x (_:ptail) = matchParen x ptail
 
+bfinput :: Brain -> IO Brain
+bfinput brain = do
+    c <- getChar
+    return brain{mem=c}
+
 bfmain :: Brain -> IO ()
 bfmain brain = let (newbrain, complete) = bfcore brain in do
     putStr $ reverse $ out newbrain
     unless complete (bfinput newbrain{out=""} >>= bfmain)
 
 main = do
-    args <- getArgs
-    src <- readFile $ head args
-    bfmain (Brain (cleanprog src) (chr 0) "" [chr 0,chr 0..] [] "")
+    src <- getArgs >>= readFile . head
+    bfmain (Brain (cleanprog src) '\0' "" ['\0','\0'..] [] "")
     where
-        cleanprog = filter (\x -> elem x "><+-.,[]")
+        cleanprog = filter (flip elem $ "><+-.,[]")
