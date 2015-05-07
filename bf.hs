@@ -1,11 +1,8 @@
--- Pure, input supplied on first line, ending with $. Programs which read beyond end of input will crash
-
 import System.IO
 import Data.Char
 
 data Brain = Brain {
     ptail :: String,
-    opc :: Int,
     mem :: Char,
     memleft :: String,
     memright :: String,
@@ -30,9 +27,8 @@ bfinterp (input, prog) = bfcore (Brain cleanprog 1 (chr 0) "" [chr 0,chr 0..] []
         cleanprog = filter (\x -> elem x "><+-.,[]") prog
         bfcore :: Brain -> String
         bfcore (Brain [] _ _ _ _ _ out _) = reverse out
-        bfcore brain@(Brain (op:ptail) opc mem memleft memright pst out input) =
-            if opc>100000 then (reverse out) ++ "\nPROCESS TIME OUT. KILLED!!!"
-            else case op of
+        bfcore brain@(Brain (op:ptail) mem memleft memright pst out input) =
+            case op of
                 '>' -> bfcore nextBrain{mem=head memright, memleft = mem:memleft, memright = tail memright}
                 '<' -> bfcore nextBrain{mem=head memleft, memleft = tail memleft, memright = mem:memright}
                 '+' -> bfcore nextBrain{mem=incrchr mem}
@@ -40,13 +36,13 @@ bfinterp (input, prog) = bfcore (Brain cleanprog 1 (chr 0) "" [chr 0,chr 0..] []
                 '.' -> bfcore nextBrain{out=mem:out}
                 ',' -> bfcore nextBrain{mem=head input, input=tail input}
                 '[' -> bfcore (if (ord mem) == 0 then
-                    nextBrain{ptail=matchParen 1 ptail,opc=opc+2}
+                    nextBrain{ptail=matchParen 1 ptail}
                     else nextBrain{pst=ptail:pst})
                 ']' -> bfcore (if (ord mem) == 0 then
                     nextBrain{pst=tail pst}
-                    else nextBrain{ptail=head pst,opc=opc+2})
+                    else nextBrain{ptail=head pst})
             where
-                nextBrain = brain{opc=opc+1,ptail=ptail}
+                nextBrain = brain{ptail=ptail}
                 matchParen :: Int -> String -> String
                 matchParen 0 ptail = ptail
                 matchParen x ('[':ptail) = matchParen (x+1) ptail
