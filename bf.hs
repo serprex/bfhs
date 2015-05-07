@@ -1,4 +1,6 @@
+import System.Environment
 import System.IO
+import Control.Monad
 import Data.Char
 
 data Brain = Brain {
@@ -7,8 +9,7 @@ data Brain = Brain {
     memleft :: String,
     memright :: String,
     pst :: [String],
-    out :: String,
-    input :: String
+    out :: String
 }
 
 incrchr = (chr . incr255 . ord)
@@ -21,43 +22,43 @@ decrchr = (chr . decr255 . ord)
         decr255 0 = 255
         decr255 x = (x-1)
 
-bfinterp :: (String, String) -> String
-bfinterp (input, prog) = bfcore (Brain cleanprog 1 (chr 0) "" [chr 0,chr 0..] [] "" input)
+bfinput :: Brain -> IO Brain
+bfinput brain = do
+    c <- getChar
+    return brain{ptail=tail (ptail brain),mem=c}
+
+bfcore :: Brain -> (Brain, Bool)
+bfcore brain@(Brain [] _ _ _ _ out) = (brain, True)
+bfcore brain@(Brain (op:ptail) mem memleft memright pst out) =
+    case op of
+        '>' -> bfcore nextBrain{mem=head memright, memleft = mem:memleft, memright = tail memright}
+        '<' -> bfcore nextBrain{mem=head memleft, memleft = tail memleft, memright = mem:memright}
+        '+' -> bfcore nextBrain{mem=incrchr mem}
+        '-' -> bfcore nextBrain{mem=decrchr mem}
+        '.' -> bfcore nextBrain{out=mem:out}
+        ',' -> (brain, False)
+        '[' -> bfcore (if (ord mem) == 0 then
+            nextBrain{ptail=matchParen 1 ptail}
+            else nextBrain{pst=ptail:pst})
+        ']' -> bfcore (if (ord mem) == 0 then
+            nextBrain{pst=tail pst}
+            else nextBrain{ptail=head pst})
     where
-        cleanprog = filter (\x -> elem x "><+-.,[]") prog
-        bfcore :: Brain -> String
-        bfcore (Brain [] _ _ _ _ _ out _) = reverse out
-        bfcore brain@(Brain (op:ptail) mem memleft memright pst out input) =
-            case op of
-                '>' -> bfcore nextBrain{mem=head memright, memleft = mem:memleft, memright = tail memright}
-                '<' -> bfcore nextBrain{mem=head memleft, memleft = tail memleft, memright = mem:memright}
-                '+' -> bfcore nextBrain{mem=incrchr mem}
-                '-' -> bfcore nextBrain{mem=decrchr mem}
-                '.' -> bfcore nextBrain{out=mem:out}
-                ',' -> bfcore nextBrain{mem=head input, input=tail input}
-                '[' -> bfcore (if (ord mem) == 0 then
-                    nextBrain{ptail=matchParen 1 ptail}
-                    else nextBrain{pst=ptail:pst})
-                ']' -> bfcore (if (ord mem) == 0 then
-                    nextBrain{pst=tail pst}
-                    else nextBrain{ptail=head pst})
-            where
-                nextBrain = brain{ptail=ptail}
-                matchParen :: Int -> String -> String
-                matchParen 0 ptail = ptail
-                matchParen x ('[':ptail) = matchParen (x+1) ptail
-                matchParen x (']':ptail) = matchParen (x-1) ptail
-                matchParen x (_:ptail) = matchParen x ptail
+        nextBrain = brain{ptail=ptail}
+        matchParen :: Int -> String -> String
+        matchParen 0 ptail = ptail
+        matchParen x ('[':ptail) = matchParen (x+1) ptail
+        matchParen x (']':ptail) = matchParen (x-1) ptail
+        matchParen x (_:ptail) = matchParen x ptail
 
-dropfirstline :: String -> String
-dropfirstline ('\n':str) = str
-dropfirstline (_:str) = dropfirstline str
+bfmain :: Brain -> IO ()
+bfmain brain = let (newbrain, complete) = bfcore brain in do
+    putStr $ reverse $ out newbrain
+    unless complete (bfinput newbrain{out=""} >>= bfmain)
 
-getInputAndProg :: String -> String -> (String, String)
-getInputAndProg input ('$':'\n':prog) = ((reverse input), prog)
-getInputAndProg input (x:prog) = getInputAndProg (x:input) prog
-
-bfread :: String -> String
-bfread = bfinterp . (getInputAndProg "") . dropfirstline
-
-main = interact bfread
+main = do
+    args <- getArgs
+    src <- readFile $ head args
+    bfmain (Brain (cleanprog src) (chr 0) "" [chr 0,chr 0..] [] "")
+    where
+        cleanprog = filter (\x -> elem x "><+-.,[]")
