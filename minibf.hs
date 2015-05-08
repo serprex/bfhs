@@ -53,6 +53,6 @@ bfmain brain = let (newbrain, complete) = bfcore brain in do
 
 main = do
 	src <- getArgs >>= readFile . head
-	bfmain $ Brain (cleanprog src) '\0' "" ['\0','\0'..] [] ""
+	bfmain $ Brain (cleanprog src) '\0' ['\0','\0'..] ['\0','\0'..] [] ""
 	where
 		cleanprog = filter $ flip elem $ "><+-.,[]"

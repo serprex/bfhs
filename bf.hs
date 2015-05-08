@@ -104,7 +104,7 @@ uAfromList :: [Word32] -> UA.UArray Int Word32
 uAfromList a = UA.listArray (0, (length a-1)) a
 
 bfparse2brain :: BrainParse -> Brain
-bfparse2brain brainParse = Brain (uAfromList $ reverse $ code brainParse) 0 0 [] (repeat (0::Word8)) ""
+bfparse2brain brainParse = Brain (uAfromList $ reverse $ code brainParse) 0 0 [0,0..] [0,0..] ""
 
 bfparse :: String -> BrainParse
 bfparse str = BrainParse str '\0' 0 [] []
