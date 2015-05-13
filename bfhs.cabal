@@ -7,10 +7,10 @@ license: MIT
 description: Brainfuck interpreter
 cabal-version: >= 1.2
 executable bfhs
-  build-depends: base
+  build-depends: base, vector
   ghc-options: -fno-warn-tabs
   main-is: bf.hs
 executable minibfhs
-  build-depends: base, array
+  build-depends: base
   ghc-options: -fno-warn-tabs
   main-is: minibf.hs
