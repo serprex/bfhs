@@ -106,4 +106,4 @@ bfparse2brain brainParse = Brain (V.fromList $ reverse $ code brainParse) 0 0 [0
 bfparse :: String -> BrainParse
 bfparse str = BrainParse str '\0' 0 [] []
 
-main = getArgs >>= readFile . head >>= (bfmain . bfparse2brain . bfmake . bfparse . (filter $ flip elem $ "><+-.,[]"))
+main = getArgs >>= readFile . head >>= bfmain . bfparse2brain . bfmake . bfparse . (filter $ flip elem $ "><+-.,[]")
